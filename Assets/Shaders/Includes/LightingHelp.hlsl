@@ -1,32 +1,85 @@
-void GetMainLight_float(float3 WorldPos, out float3 Color, out float3 Direction, out float DistanceAtten, out float ShadowAtten)
+float EvaluateSpecular(float3 N, float3 L, float3 V, float Shininess, float SpecularThreshold)
 {
-#ifdef SHADERGRAPH_PREVIEW
-    Direction = normalize(float3(0.5, 0.5, 0));
-    Color = 1;
-    DistanceAtten = 1;
-    ShadowAtten = 1;
-#else
-#if SHADOWS_SCREEN
-        float4 clipPos = TransformWorldToClip(WorldPos);
-        float4 shadowCoord = ComputeScreenPos(clipPos);
-#else
-    float4 shadowCoord = TransformWorldToShadowCoord(WorldPos);
-#endif
-
-    Light mainLight = GetMainLight(shadowCoord);
-    Direction = mainLight.direction;
-    Color = mainLight.color;
-    DistanceAtten = mainLight.distanceAttenuation;
-    ShadowAtten = mainLight.shadowAttenuation;
-#endif
+    if (dot(N, L) <= 0)
+    {
+        return 0;
+    }
+    
+    float3 LPlusV = L + V;
+    float3 H = LPlusV * rsqrt(max(dot(LPlusV, LPlusV), 1e-6));
+    float specular = pow(saturate(dot(N, H)), max(Shininess, 1.0));
+    return step(SpecularThreshold, specular);
 }
 
-void ComputeAdditionalLighting_float(float3 WorldPosition, float3 WorldNormal,
-    float2 Thresholds, float3 RampedDiffuseValues,
-    out float3 Color, out float Diffuse)
+void ChooseColor_float(float3 Highlight, float3 Midtone, float3 Shadow, float Diffuse, float2 Thresholds, out float3 OUT)
 {
-    Color = float3(0, 0, 0);
-    Diffuse = 0;
+    if (Diffuse < Thresholds.x)
+    {
+        OUT = Shadow;
+    }
+    else if (Diffuse < Thresholds.y)
+    {
+        OUT = Midtone;
+    }
+    else
+    {
+        OUT = Highlight;
+    }
+}
+
+void ComputeMainLighting_float(float3 WorldPosition, float3 WorldNormal, float3 WorldViewDirection,
+    float3 Highlight, float3 Midtone, float3 Shadow, float2 Thresholds,
+    float3 SpecularTint, float SpecularStrength, float Shininess, float SpecularThreshold,
+    out float3 DiffuseColor, out float3 SpecularColor)
+{
+    float3 lightDirection;
+    float3 lightColor;
+    float distanceAtten;
+    float shadowAtten;
+    
+#ifdef SHADERGRAPH_PREVIEW
+    lightDirection = normalize(float3(0.5, 0.5, 0));
+    lightColor = 1;
+    distanceAtten = 1;
+    shadowAtten = 1;
+#else
+#if SHADOWS_SCREEN
+    float4 clipPos = TransformWorldToClip(WorldPosition);
+    float4 shadowCoord = ComputeScreenPos(clipPos);
+#else
+    float4 shadowCoord = TransformWorldToShadowCoord(WorldPosition);
+#endif
+    Light light = GetMainLight(shadowCoord);
+    lightDirection = light.direction;
+    lightColor = light.color;
+    distanceAtten = light.distanceAttenuation;
+    shadowAtten = light.shadowAttenuation;
+#endif
+
+    float diffuse = saturate(dot(WorldNormal, lightDirection)) * distanceAtten * shadowAtten;
+
+    float3 paletteColor;
+    ChooseColor_float(Highlight, Midtone, Shadow, diffuse, Thresholds, paletteColor);
+
+    DiffuseColor = paletteColor * lightColor;
+    
+    SpecularColor =
+    EvaluateSpecular(WorldNormal, lightDirection, WorldViewDirection, Shininess, SpecularThreshold)
+    * SpecularTint
+    * SpecularStrength
+    * lightColor
+    * distanceAtten
+    * shadowAtten;
+}
+
+void ComputeAdditionalLighting_float(float3 WorldPosition, float3 WorldNormal, float3 WorldViewDirection,
+    float2 Thresholds, float3 RampedDiffuseValues,
+    float3 SpecularTint, float SpecularStrength, float Shininess, float SpecularThreshold,
+    out float3 DiffuseColor, out float3 SpecularColor)
+{
+    DiffuseColor = float3(0, 0, 0);
+    SpecularColor = float3(0, 0, 0);
+    float Diffuse = 0;
 
 #ifndef SHADERGRAPH_PREVIEW
 
@@ -66,31 +119,21 @@ void ComputeAdditionalLighting_float(float3 WorldPosition, float3 WorldNormal,
             rampedDiffuse = 0.0;
         }
 
-        Color += max(rampedDiffuse, 0) * light.color.rgb;
+        DiffuseColor += max(rampedDiffuse, 0) * light.color.rgb;
         Diffuse += rampedDiffuse;
+        
+        SpecularColor +=EvaluateSpecular(WorldNormal, light.direction, WorldViewDirection, Shininess, SpecularThreshold)
+            * SpecularTint
+            * SpecularStrength
+            * light.color
+            * distanceAtten 
+            * shadowAtten;
     }
     
     if (Diffuse <= 0.3)
     {
-        Color = float3(0, 0, 0);
-        Diffuse = 0;
+        DiffuseColor = float3(0, 0, 0);
     }
     
 #endif
-}
-
-void ChooseColor_float(float3 Highlight, float3 Midtone, float3 Shadow, float Diffuse, float2 Thresholds, out float3 OUT)
-{
-    if (Diffuse < Thresholds.x)
-    {
-        OUT = Shadow;
-    }
-    else if (Diffuse < Thresholds.y)
-    {
-        OUT = Midtone;
-    }
-    else
-    {
-        OUT = Highlight;
-    }
 }
