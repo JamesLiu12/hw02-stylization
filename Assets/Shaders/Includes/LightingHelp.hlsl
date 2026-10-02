@@ -28,7 +28,7 @@ void ChooseColor_float(float3 Highlight, float3 Midtone, float3 Shadow, float Di
 }
 
 void ComputeMainLighting_float(float3 WorldPosition, float3 WorldNormal, float3 WorldViewDirection,
-    float3 Highlight, float3 Midtone, float3 Shadow, float2 Thresholds,
+    float3 Highlight, float3 Midtone, float3 Shadow, float2 Thresholds, float ShadowPattern,
     float3 SpecularTint, float SpecularStrength, float Shininess, float SpecularThreshold,
     out float3 DiffuseColor, out float3 SpecularColor)
 {
@@ -56,12 +56,16 @@ void ComputeMainLighting_float(float3 WorldPosition, float3 WorldNormal, float3 
     shadowAtten = light.shadowAttenuation;
 #endif
 
-    float diffuse = saturate(dot(WorldNormal, lightDirection)) * distanceAtten * shadowAtten;
+    float unshadowedDiffuse = saturate(dot(WorldNormal, lightDirection)) * distanceAtten;
+    float shadowedDiffuse = unshadowedDiffuse * shadowAtten;
 
-    float3 paletteColor;
-    ChooseColor_float(Highlight, Midtone, Shadow, diffuse, Thresholds, paletteColor);
+    float3 shadowedColor;
+    float3 unshadowedColor;
+    
+    ChooseColor_float(Highlight, Midtone, Shadow, shadowedDiffuse, Thresholds, shadowedColor);
+    ChooseColor_float(Highlight, Midtone, Shadow,unshadowedDiffuse, Thresholds, unshadowedColor);
 
-    DiffuseColor = paletteColor * lightColor;
+    DiffuseColor = lerp(shadowedColor, unshadowedColor, saturate(ShadowPattern)) * lightColor;
     
     SpecularColor =
     EvaluateSpecular(WorldNormal, lightDirection, WorldViewDirection, Shininess, SpecularThreshold)
@@ -72,14 +76,29 @@ void ComputeMainLighting_float(float3 WorldPosition, float3 WorldNormal, float3 
     * shadowAtten;
 }
 
+float EvaluateRampedDiffuse(float diffuse, float2 thresholds, float3 values)
+{
+    if (diffuse < thresholds.x)
+    {
+        return values.x;
+    }
+    else if (diffuse < thresholds.y)
+    {
+        return values.y;
+    }
+    else
+    {
+        return values.z;
+    }
+}
+
 void ComputeAdditionalLighting_float(float3 WorldPosition, float3 WorldNormal, float3 WorldViewDirection,
-    float2 Thresholds, float3 RampedDiffuseValues,
+    float2 Thresholds, float ShadowPattern, float3 RampedDiffuseValues,
     float3 SpecularTint, float SpecularStrength, float Shininess, float SpecularThreshold,
     out float3 DiffuseColor, out float3 SpecularColor)
 {
     DiffuseColor = float3(0, 0, 0);
     SpecularColor = float3(0, 0, 0);
-    float Diffuse = 0;
 
 #ifndef SHADERGRAPH_PREVIEW
 
@@ -96,31 +115,20 @@ void ComputeAdditionalLighting_float(float3 WorldPosition, float3 WorldNormal, f
         half NdotL = saturate(dot(WorldNormal, light.direction));
         half distanceAtten = light.distanceAttenuation;
 
-        half thisDiffuse = distanceAtten * shadowAtten * NdotL;
-        
-        half rampedDiffuse = 0;
-        
-        if (thisDiffuse < Thresholds.x)
+        float unshadowedDiffuse = distanceAtten * NdotL;
+        float shadowedDiffuse = unshadowedDiffuse * shadowAtten;
+
+        float shadowedRamp = EvaluateRampedDiffuse(shadowedDiffuse, Thresholds, RampedDiffuseValues);
+        float unshadowedRamp = EvaluateRampedDiffuse(unshadowedDiffuse, Thresholds, RampedDiffuseValues);
+
+        float rampedDiffuse = lerp(shadowedRamp, unshadowedRamp, saturate(ShadowPattern));
+
+        if (distanceAtten <= 0)
         {
-            rampedDiffuse = RampedDiffuseValues.x;
-        }
-        else if (thisDiffuse < Thresholds.y)
-        {
-            rampedDiffuse = RampedDiffuseValues.y;
-        }
-        else
-        {
-            rampedDiffuse = RampedDiffuseValues.z;
+            rampedDiffuse = 0;
         }
 
-        
-        if (light.distanceAttenuation <= 0)
-        {
-            rampedDiffuse = 0.0;
-        }
-
-        DiffuseColor += max(rampedDiffuse, 0) * light.color.rgb;
-        Diffuse += rampedDiffuse;
+        DiffuseColor += max(rampedDiffuse, 0) * light.color;
         
         SpecularColor +=EvaluateSpecular(WorldNormal, light.direction, WorldViewDirection, Shininess, SpecularThreshold)
             * SpecularTint
@@ -129,11 +137,5 @@ void ComputeAdditionalLighting_float(float3 WorldPosition, float3 WorldNormal, f
             * distanceAtten 
             * shadowAtten;
     }
-    
-    if (Diffuse <= 0.3)
-    {
-        DiffuseColor = float3(0, 0, 0);
-    }
-    
 #endif
 }
