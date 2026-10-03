@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Terrain Mat
-  m_Shader: {fileID: -6465566751694194690, guid: 011a51abe1edcde4c92e55a7e562ba45,
+  m_Shader: {fileID: -6465566751694194690, guid: 56f02d8c84c82ba48a1d37549fb98265,
     type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -42,10 +42,6 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 68d65ad82ed3935459306a8661650c35, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     - _ShadowTexture:
         m_Texture: {fileID: 2800000, guid: eb848bfdc0a1bff4bb05e217d912844d, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -76,7 +72,6 @@ Material:
     - _SpecularStrength: 0
     - _SpecularThreshold: 0
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 0}
     - _Highlight: {r: 0.77254903, g: 0.9098039, b: 0.627451, a: 0}
     - _MidTone: {r: 0.5137255, g: 0.7372549, b: 0.53333336, a: 0}
     - _Ramped_Diffuse_Values: {r: 0.2, g: 0.4, b: 1, a: 0}
