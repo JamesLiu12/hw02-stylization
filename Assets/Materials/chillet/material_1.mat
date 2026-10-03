@@ -121,7 +121,7 @@ Material:
     - _ReceiveShadows: 1
     - _SHADOWS_SOFT: 1
     - _ShadowScale: 8
-    - _Shininess: 64
+    - _Shininess: 32
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -138,11 +138,11 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Highlight: {r: 1, g: 1, b: 1, a: 0}
-    - _MidTone: {r: 0.7490196, g: 0.7490196, b: 0.7490196, a: 0}
+    - _MidTone: {r: 0.9019608, g: 0.9490196, b: 1, a: 0}
     - _Ramped_Diffuse_Values: {r: 0.2, g: 0.4, b: 1, a: 0}
-    - _Shadow: {r: 0.34901956, g: 0.39999998, b: 0.5019608, a: 0}
+    - _Shadow: {r: 0.54901963, g: 0.6784314, b: 0.8509804, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _SpecularTint: {r: 1, g: 1, b: 1, a: 0}
+    - _SpecularTint: {r: 0.6666667, g: 0.6666667, b: 0.6666667, a: 0}
     - _Thresholds: {r: 0.2, g: 0.6, b: 0, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &7329210308505157817
