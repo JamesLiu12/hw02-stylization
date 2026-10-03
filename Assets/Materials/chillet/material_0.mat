@@ -120,8 +120,8 @@ Material:
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _SHADOWS_SOFT: 1
-    - _ShadowScale: 4
-    - _Shininess: 32
+    - _ShadowScale: 8
+    - _Shininess: 64
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
